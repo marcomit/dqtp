@@ -8,14 +8,14 @@ use serde_json::Value;
 
 
 pub struct Broker {
-  pub clients: Vec<Client>,
+  pub clients: Arc<Mutex<Vec<Client>>>,
   // tree: Map<String, Client>,
   value: Value
 }
 
 lazy_static! {
   pub static ref BROKER: Arc<Mutex<Broker>> = Arc::new(Mutex::new(Broker {
-    clients: vec![],
+    clients: Arc::new(Mutex::new(vec![])),
     value: Value::Null
   }));
 }
@@ -25,14 +25,17 @@ impl Broker {
   pub fn get() -> MutexGuard<'static, Broker> {
     BROKER.lock().unwrap()
   }
-  pub fn add_client(&mut self, client: Client) {
-    self.clients.push(client);
-    self.handle_request();
+  pub fn add_client(&mut self, mut client: Client) {
+    let clients = Arc::clone(&self.clients);
+    let mut clients = clients.lock().unwrap();
+    clients.push(client);
   }
 
-  pub fn handle_request(&mut self) {
-
+  pub fn get_clients(&self) {
+    let clients = Arc::clone(&self.clients);
+    let mut clients = clients.lock().unwrap();
   }
+
   pub fn get_from_path(&self, path: Vec<String>) -> Value {
     let mut current = self.value.clone();
 
@@ -42,6 +45,7 @@ impl Broker {
     }
     current
   }
+
   pub fn modify_from_path(&mut self, path: Vec<String>, value: Value) {
     if path.len() == 0 {
       return;
